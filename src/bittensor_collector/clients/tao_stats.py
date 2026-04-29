@@ -40,6 +40,9 @@ class TaoStatsClient:
         }
         return self._identity_by_netuid
 
+    def list_netuids(self) -> list[int]:
+        return sorted(netuid for netuid in self._load_identity_index() if netuid > 0)
+
     def _get_json_or_default(
         self,
         url: str,
@@ -90,7 +93,6 @@ class TaoStatsClient:
         return {
             "subnet_name": identity.get("subnet_name") or pool.get("name"),
             "domain": domain,
-            "hardware_requirement": identity.get("additional") or "",
             "business_model_summary": identity.get("summary") or identity.get("description") or "",
             "registration_fee_tao": self._to_tao(subnet.get("registration_cost")),
             "immunity_period_blocks": subnet.get("immunity_period"),

@@ -47,6 +47,19 @@ def compute_hhi(values: list[float]) -> float | None:
     return fsum([s * s for s in shares])
 
 
+def apply_heat_scores(records: list[SubnetRecord]) -> None:
+    raw_scores = [
+        float(record.miner_count or 0) * float(record.total_stake_tao or 0)
+        for record in records
+    ]
+    max_score = max(raw_scores, default=0.0)
+    for record, raw_score in zip(records, raw_scores):
+        if max_score <= 0:
+            record.heat_score = 0.0
+        else:
+            record.heat_score = raw_score / max_score * 100
+
+
 def build_preliminary_conclusion(record: SubnetRecord, thresholds: ThresholdConfig) -> str:
     notes: list[str] = []
 

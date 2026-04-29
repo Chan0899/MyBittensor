@@ -4,9 +4,7 @@ import argparse
 import shutil
 import sys
 
-from bittensor_collector.clients.tao_app import TaoAppClient
 from bittensor_collector.clients.tao_stats import TaoStatsClient
-from bittensor_collector.collectors.supplemental import SupplementalCollector
 from bittensor_collector.config import AppConfig
 from bittensor_collector.excel_exporter import export_excel
 from bittensor_collector.pipeline import CollectorPipeline
@@ -30,7 +28,7 @@ def render_progress(current: int, total: int, message: str) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Bittensor 子网评估采集器")
     parser.add_argument("--config", default="config/default.json", help="配置文件路径")
-    parser.add_argument("--netuids", default="", help="覆盖配置中的netuid列表，如 1,8,18")
+    parser.add_argument("--netuids", default="", help="覆盖配置中的netuid列表，如 1,8,18；留空则抓取全部子网")
     parser.add_argument("--income-mode", choices=["median", "p30"], default="", help="中游收益口径")
     parser.add_argument("--output", default="", help="Excel输出路径")
     return parser
@@ -55,16 +53,15 @@ def main() -> None:
         min_interval_sec=config.runtime.min_interval_sec,
         cache_dir=config.paths.cache_dir,
     )
-    tao_app = TaoAppClient(config.sources.tao_app_base_url, http_client)
     tao_stats = TaoStatsClient(
         config.sources.tao_stats_base_url,
         http_client,
         api_token=config.sources.tao_stats_api,
     )
-    supplemental = SupplementalCollector(config.sources.github_api_base_url, http_client)
 
-    pipeline = CollectorPipeline(config, tao_app, tao_stats, supplemental)
-    total_steps = max(len(config.netuids) + 1, 1)
+    pipeline = CollectorPipeline(config, tao_stats)
+    resolved_netuids = pipeline.resolve_netuids()
+    total_steps = max(len(resolved_netuids) + 1, 1)
     render_progress(0, total_steps, "准备开始")
     records, evidence_items = pipeline.run(
         progress_callback=lambda current, total, message: render_progress(

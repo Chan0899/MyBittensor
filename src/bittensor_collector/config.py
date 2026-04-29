@@ -16,7 +16,6 @@ class RuntimeConfig:
 
 @dataclass
 class SourceConfig:
-    tao_app_base_url: str = "https://api.tao.app"
     tao_stats_base_url: str = "https://taostats.io"
     tao_stats_api: str = ""
     github_api_base_url: str = "https://api.github.com"
