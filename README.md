@@ -1,3 +1,34 @@
+<<<<<<< HEAD
+# Bittensor 子网评估采集器（首版骨架）
+
+该项目按计划实现了首版命令行骨架：
+
+
+## 快速开始
+
+```bash
+pip install -r requirements.txt
+python run.py --config config/default.json
+```
+
+Windows 下也可以直接双击 [run_collector.bat](run_collector.bat) 运行。该脚本会自动检查 Python、按需安装依赖，并在结束后暂停显示结果。
+
+## 常用参数
+
+```bash
+python run.py \
+  --config config/default.json \
+  --netuids 1,8,18,32,42 \
+  --income-mode p30 \
+  --output data/output/first_run.xlsx
+```
+
+## 说明
+
+=======
+# MyBittensor
+none
+>>>>>>> 1d81ddde8ed547f393f79322168357137b84ef97
 # Bittensor 子网评估采集器（首版骨架）
 
 该项目按计划实现了首版命令行骨架：
