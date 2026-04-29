@@ -1,0 +1,32 @@
+{
+  "netuids": [1, 8, 18, 32, 42],
+  "runtime": {
+    "request_timeout_sec": 15,
+    "max_retries": 3,
+    "min_interval_sec": 0.35,
+    "enable_discord": false,
+    "income_mode": "median"
+  },
+  "sources": {
+    "tao_app_base_url": "https://api.tao.app",
+    "tao_stats_base_url": "https://api.taostats.io",
+    "tao_stats_api": "tao-4de3663d-aad7-40d8-9f06-d1fcedaba295:7ce8e5ea",
+    "github_api_base_url": "https://api.github.com"
+  },
+  "thresholds": {
+    "high_gini": 0.75,
+    "high_hhi": 0.25,
+    "high_registration_fee_tao": 10.0,
+    "low_middle_income_tao": 0.2,
+    "min_validators": 16
+  },
+  "paths": {
+    "cache_dir": "data/cache",
+    "output_path": "data/output/subnet_assessment.xlsx"
+  },
+  "supplemental": {
+    "github_repos": {},
+    "project_urls": {},
+    "discord_invites": {}
+  }
+}
