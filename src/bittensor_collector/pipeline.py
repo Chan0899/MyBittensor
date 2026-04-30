@@ -56,30 +56,61 @@ class CollectorPipeline:
             record = SubnetRecord(netuid=netuid, snapshot_time=snapshot_time)
 
             self._collect_from_tao_stats(record, evidence_items)
-
-            record.middle_daily_income_tao = middle_income(
-                record.miner_income_distribution,
-                self.config.runtime.income_mode,
-            )
-            if record.gini is None:
-                record.gini = compute_gini(record.miner_income_distribution)
-            if record.hhi is None:
-                record.hhi = compute_hhi(record.miner_income_distribution)
-
-            record.preliminary_conclusion = build_preliminary_conclusion(
-                record, self.config.thresholds
-            )
+            self._finalize_record(record)
             records.append(record)
 
             if progress_callback:
                 progress_callback(index, total, f"已完成 netuid={netuid}")
 
+        failed_records = [record for record in records if record.manual_review_needed]
+        retry_total = len(failed_records)
+        for index, record in enumerate(failed_records, start=1):
+            if progress_callback:
+                progress_callback(index - 1, retry_total, f"失败重试 netuid={record.netuid}")
+
+            self._retry_failed_record(record, evidence_items)
+
+            if progress_callback:
+                progress_callback(index, retry_total, f"重试完成 netuid={record.netuid}")
+
         apply_heat_scores(records)
         return records, evidence_items
+
+    def _finalize_record(self, record: SubnetRecord) -> None:
+        record.middle_daily_income_tao = middle_income(
+            record.miner_income_distribution,
+            self.config.runtime.income_mode,
+        )
+        record.gini = compute_gini(record.miner_income_distribution)
+        record.hhi = compute_hhi(record.miner_income_distribution)
+        record.preliminary_conclusion = build_preliminary_conclusion(
+            record, self.config.thresholds
+        )
+
+    def _retry_failed_record(
+        self,
+        record: SubnetRecord,
+        evidence_items: list[EvidenceItem],
+    ) -> None:
+        had_failure = record.manual_review_needed
+        self._collect_from_tao_stats(record, evidence_items)
+        self._finalize_record(record)
+
+        if had_failure and not record.manual_review_needed:
+            evidence_items.append(
+                EvidenceItem(
+                    netuid=record.netuid,
+                    source="tao_stats",
+                    field_name="retry_success",
+                    source_url=f"{self.config.sources.tao_stats_base_url}/api/subnet/latest/v1?netuid={record.netuid}",
+                    raw_text="Retry succeeded after initial api_error",
+                )
+            )
 
     def _collect_from_tao_stats(self, record: SubnetRecord, evidence_items: list[EvidenceItem]) -> None:
         try:
             detail = self.tao_stats.fetch_subnet_detail(record.netuid)
+            record.manual_review_needed = False
             record.subnet_name = record.subnet_name or _pick(detail, ["subnet_name"], "")
             record.domain = record.domain or _pick(detail, ["domain", "category"], "")
             record.registration_fee_tao = record.registration_fee_tao or _pick(

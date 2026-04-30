@@ -3,7 +3,7 @@
   "runtime": {
     "request_timeout_sec": 15,
     "max_retries": 3,
-    "min_interval_sec": 0.35,
+    "min_interval_sec": 2,
     "enable_discord": false,
     "income_mode": "median"
   },

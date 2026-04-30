@@ -25,6 +25,30 @@ class TaoStatsClient:
             return None
         return float(value) / 1e9
 
+    def _first_tao_value(self, data: Mapping[str, object], keys: tuple[str, ...]) -> float | None:
+        for key in keys:
+            tao_value = self._to_tao(data.get(key))
+            if tao_value is not None:
+                return tao_value
+        return None
+
+    def _extract_income_distribution(self, metagraph_rows: list[dict]) -> list[float]:
+        mining_rewards = [
+            reward
+            for item in metagraph_rows
+            if (reward := self._first_tao_value(item, ("daily_mining_tao", "daily_mining_alpha_as_tao")))
+            not in (None, 0.0)
+        ]
+        if mining_rewards:
+            return mining_rewards
+
+        return [
+            reward
+            for item in metagraph_rows
+            if (reward := self._first_tao_value(item, ("daily_total_rewards_as_tao", "daily_reward")))
+            not in (None, 0.0)
+        ]
+
     def _load_identity_index(self) -> dict[int, dict]:
         if self._identity_by_netuid is not None:
             return self._identity_by_netuid
@@ -80,12 +104,7 @@ class TaoStatsClient:
         pool = (pool_payload.get("data") or [{}])[0]
         identity = self._load_identity_index().get(netuid, {})
         metagraph_rows = metagraph_payload.get("data") or []
-
-        incentives = [
-            float(item["incentive"])
-            for item in metagraph_rows
-            if item.get("incentive") not in (None, "")
-        ]
+        income_distribution = self._extract_income_distribution(metagraph_rows)
 
         tags = identity.get("tags") or []
         domain = ", ".join(str(tag) for tag in tags[:3])
@@ -94,12 +113,15 @@ class TaoStatsClient:
             "subnet_name": identity.get("subnet_name") or pool.get("name"),
             "domain": domain,
             "business_model_summary": identity.get("summary") or identity.get("description") or "",
-            "registration_fee_tao": self._to_tao(subnet.get("registration_cost")),
+            "registration_fee_tao": self._first_tao_value(
+                subnet,
+                ("neuron_registration_cost", "min_burn", "registration_cost"),
+            ),
             "immunity_period_blocks": subnet.get("immunity_period"),
             "total_stake_tao": self._to_tao(pool.get("total_tao")),
             "miner_count": subnet.get("active_miners") or subnet.get("active_keys"),
             "validator_count": subnet.get("validators") or subnet.get("active_validators"),
-            "miner_income_distribution": incentives,
+            "miner_income_distribution": income_distribution,
             "subnet_url": identity.get("subnet_url") or "",
             "github_repo": identity.get("github_repo") or "",
             "description": identity.get("description") or "",
